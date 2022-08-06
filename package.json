@@ -1,0 +1,23 @@
+{
+  "name": "bookmark",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "run": "node src/index.js && node src/read.js && node src/generate.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "metascraper": "^5.30.1",
+    "metascraper-logo-favicon": "^5.30.1",
+    "metascraper-title": "^5.29.15",
+    "metascraper-url": "^5.29.15",
+    "puppeteer": "^16.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19"
+  }
+}
