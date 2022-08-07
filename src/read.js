@@ -21,7 +21,17 @@ website.forEach(i => {
     }
   });
   if (result.length >= 5) {
-    sorted.push({ website: i, children: [...result] });
+    const chunkSize = 50;
+    if (result.length >= chunkSize) {
+      for (let i2 = 0; i2 < result.length; i2 += chunkSize) {
+        let result2 = [];
+        const chunk = result.slice(i2, i2 + chunkSize);
+        result2.push({ website: i + i2 / 10, children: [...chunk] });
+        sorted.push({ website: i, children: [...result2] });
+      }
+    } else {
+      sorted.push({ website: i, children: [...result] });
+    }
   } else {
     sorted1.push(...result);
   }
