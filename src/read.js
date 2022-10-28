@@ -15,6 +15,8 @@ let sorted1 = [];
 
 website.forEach(i => {
   let result = [];
+  let websort = { website: i, children: [] };
+
   tempdata.forEach(i2 => {
     if (i == i2.href.substring(8, i2.href.indexOf('.'))) {
       result.push(i2);
@@ -26,9 +28,11 @@ website.forEach(i => {
       for (let i2 = 0; i2 < result.length; i2 += chunkSize) {
         let result2 = [];
         const chunk = result.slice(i2, i2 + chunkSize);
-        result2.push({ website: i + i2 / 10, children: [...chunk] });
-        sorted.push({ website: i, children: [...result2] });
+        // result2.push({ website: i + i2 / 10, children: [...chunk] });
+        // sorted.push({ website: i, children: [...result2] });
+        websort.children.push({ website: i + i2 / 10, children: [...chunk] });
       }
+      sorted.push(websort);
     } else {
       sorted.push({ website: i, children: [...result] });
     }

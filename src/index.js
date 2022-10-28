@@ -52,6 +52,17 @@ fs.readFile('src/bookmarks.html', async (err, data) => {
 
   tmp3[0].children = [...tmp4];
 
+  function sortByKey(array, key) {
+    return array.sort(function (a, b) {
+      var x = a[key];
+      var y = b[key];
+      return x < y ? -1 : x > y ? 1 : 0;
+    });
+  }
+
+  arrayjson1 = sortByKey(arrayjson1, 'href');
+  arrayjson1 = sortByKey(arrayjson1, 'name');
+
   console.log('Total Bookmarks:', count);
   let data1 = JSON.stringify(tmp3, null, 2);
   let data2 = JSON.stringify(arrayjson1, null, 2);
