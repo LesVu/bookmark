@@ -30,7 +30,7 @@ website.forEach(i => {
         const chunk = result.slice(i2, i2 + chunkSize);
         // result2.push({ website: i + i2 / 10, children: [...chunk] });
         // sorted.push({ website: i, children: [...result2] });
-        websort.children.push({ website: i + i2 / 10, children: [...chunk] });
+        websort.children.push({ website: i + i2 / 50, children: [...chunk] });
       }
       sorted.push(websort);
     } else {

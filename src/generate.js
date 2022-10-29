@@ -10,6 +10,7 @@ let payload = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
 <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
 <TITLE>Bookmarks</TITLE>
 <H1>Bookmarks</H1>
+<DT><H3>Collection</H3>
 `;
 
 // let tmp1 = '';
