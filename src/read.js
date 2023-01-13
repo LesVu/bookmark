@@ -6,7 +6,10 @@ let tempdata = JSON.parse(tempdata1.toString());
 
 let website = [];
 tempdata.forEach(i => {
-  const web = i.href.substring(8, i.href.indexOf('.'));
+  const web = i.href
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\d?\./, '')
+    .replace(/\..*$/, '');
   if (!website.includes(web)) website.push(web);
 });
 
@@ -18,7 +21,13 @@ website.forEach(i => {
   let websort = { website: i, children: [] };
 
   tempdata.forEach(i2 => {
-    if (i == i2.href.substring(8, i2.href.indexOf('.'))) {
+    if (
+      i ==
+      i2.href
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\d?\./, '')
+        .replace(/\..*$/, '')
+    ) {
       result.push(i2);
     }
   });
