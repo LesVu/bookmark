@@ -37,10 +37,11 @@ website.forEach(i => {
 
   if (result.length >= Number(config.website.folder_exclude_size)) {
     if (config.exclude.website.find(elmt => elmt == i)) {
+      console.log(i);
       sorted1.push(...result);
     } else {
       const chunkSize = Number(config.website.folder_size);
-      if (result.length >= chunkSize) {
+      if (result.length >= chunkSize && chunkSize > 0) {
         for (let i2 = 0; i2 < result.length; i2 += chunkSize) {
           const chunk = result.slice(i2, i2 + chunkSize);
           // let result2 = [];
