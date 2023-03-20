@@ -1,6 +1,8 @@
 const fs = require('fs');
 
-let tempdata1 = fs.readFileSync('./dist/datasorted.json', { encoding: 'utf8' });
+let tempdata1 = fs.readFileSync('./static/datasorted.json', {
+  encoding: 'utf8',
+});
 let tempdata = JSON.parse(tempdata1.toString());
 
 let payload = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
@@ -60,7 +62,7 @@ writeBookmarks(tempdata, 0);
 payload = payload.concat(strings);
 
 try {
-  fs.writeFileSync('./dist/bookmark.html', payload);
+  fs.writeFileSync('./static/bookmark_generated.html', payload);
   console.log('Successfully write bookmark');
 } catch (err) {
   console.error(err);
