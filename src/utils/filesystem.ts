@@ -1,9 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-export function readFile(
-  fileName: fs.PathOrFileDescriptor
-): string | object | undefined {
+export function readFile(fileName: fs.PathOrFileDescriptor): string | object | undefined {
   if (!fs.existsSync(path.resolve(fileName as string))) {
     if (!fs.existsSync(path.resolve('./static'))) {
       console.log(`Mkdir static`);
@@ -11,9 +9,7 @@ export function readFile(
         recursive: true,
       });
     }
-    throw new Error(
-      'File not exist. Place your bookmarks.html into static folder.'
-    );
+    throw new Error('File not exist. Place your bookmarks.html into static folder.');
   }
   let extension = fileName.toString().match(/\.([^\./\?]+)($|\?)/);
   try {
@@ -31,10 +27,7 @@ export function readFile(
   }
 }
 
-export function writeFile(
-  fileName: fs.PathOrFileDescriptor,
-  buffer: object[] | string
-) {
+export function writeFile(fileName: fs.PathOrFileDescriptor, buffer: object[] | string) {
   let output: string;
 
   if (!fs.existsSync(path.resolve('./static'))) {

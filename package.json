@@ -2,9 +2,10 @@
   "name": "bookmark",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.ts",
   "scripts": {
-    "run": "node src/index.js && node src/read.js && node src/generate.js"
+    "run": "tsc && node build/main.js",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",

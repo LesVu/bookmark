@@ -125,3 +125,43 @@ export function sortBookmark(data: Bookmark_Item[]) {
   sorted_result.push({ website: 'none', children: sorted_not_found });
   return sorted_result;
 }
+
+export function generateBookmark(data: Bookmark[]) {
+  let payload = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<!-- This is an automatically generated file.
+     It will be read and overwritten.
+     DO NOT EDIT! -->
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+<DT><H3>Collection</H3>
+`;
+
+  let strings = '';
+
+  function writeBookmarksPayload(datas: Bookmark[] | Bookmark_Item[], level: number) {
+    let indent = '';
+    for (let i = 0; i < level; i++) {
+      indent = indent.concat('    ');
+    }
+
+    strings = strings.concat(indent + '<DL><p>\n');
+
+    datas.forEach(i => {
+      if ('website' in i) {
+        strings = strings.concat(indent + '<DT><H3>' + i.website + '</H3>\n');
+        writeBookmarksPayload(i.children as Bookmark_Item[], level + 1);
+      }
+      if ('href' in i && 'name' in i) {
+        strings = strings.concat(indent + '<DT><A HREF="' + i.href + '">' + i.name + '</A>\n');
+      }
+    });
+    strings = strings.concat(indent + '</DL><p>\n');
+  }
+
+  writeBookmarksPayload(data, 0);
+
+  payload = payload.concat(strings);
+
+  return payload;
+}
