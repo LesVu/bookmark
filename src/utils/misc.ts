@@ -15,7 +15,7 @@ export function readConfig() {
     let config_buffer = fs.readFileSync('./config.toml', {
       encoding: 'utf8',
     });
-    let config = TOML.parse(config_buffer);
+    let config: Config = TOML.parse(config_buffer);
     return config;
   } catch (err) {
     console.log('No config available using default config');

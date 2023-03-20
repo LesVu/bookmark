@@ -1,5 +1,5 @@
 import { load } from 'cheerio';
-import { Bookmark_Item } from '../types/bookmark_types';
+import { Bookmark_Item, Bookmark } from '../types/bookmark_types';
 import { sortByKey, readConfig } from './misc';
 
 export function extractBookmark(data: string) {
@@ -72,12 +72,15 @@ export function sortBookmark(data: Bookmark_Item[]) {
     if (!website.includes(web)) website.push(web);
   });
 
-  let sorted = [];
-  let sorted1 = [];
+  let sorted_result: Bookmark[] = [];
+  let sorted_not_found: Bookmark_Item[] = [];
 
   website.forEach(i => {
-    let result: Bookmark_Item[] = [];
-    let websort = { website: i, children: [] };
+    let website_result: Bookmark_Item[] = [];
+    let temp_variable: Bookmark = {
+      website: i,
+      children: [],
+    };
 
     // Find and list website
     data.forEach(i2 => {
@@ -88,36 +91,37 @@ export function sortBookmark(data: Bookmark_Item[]) {
           .replace(/^www\d?\./, '')
           .replace(/\..*$/, '')
       ) {
-        result.push(i2);
+        website_result.push(i2);
       }
     });
 
-    if (result.length >= Number(config.website!.folder_exclude_size)) {
-      if (config.exclude.website.find(elmt => elmt == i)) {
+    if (website_result.length >= Number(config.website!.folder_exclude_size)) {
+      if (config.exclude!.website.find(elmt => elmt == i)) {
         console.log(i);
-        sorted1.push(...result);
+        sorted_not_found.push(...website_result);
       } else {
-        const chunkSize = Number(config.website.folder_size);
-        if (result.length >= chunkSize && chunkSize > 0) {
-          for (let i2 = 0; i2 < result.length; i2 += chunkSize) {
-            const chunk = result.slice(i2, i2 + chunkSize);
+        const chunkSize = Number(config.website!.folder_size);
+        if (website_result.length >= chunkSize && chunkSize > 0) {
+          for (let i2 = 0; i2 < website_result.length; i2 += chunkSize) {
+            const chunk = website_result.slice(i2, i2 + chunkSize);
             // let result2 = [];
             // result2.push({ website: i + i2 / 10, children: [...chunk] });
             // sorted.push({ website: i, children: [...result2] });
-            websort.children.push({
+            temp_variable.children.push({
               website: i + i2 / chunkSize,
-              children: [...chunk],
+              children: chunk,
             });
           }
-          sorted.push(websort);
+          sorted_result.push(temp_variable);
         } else {
-          sorted.push({ website: i, children: [...result] });
+          sorted_result.push({ website: i, children: [...website_result] });
         }
       }
     } else {
-      sorted1.push(...result);
+      sorted_not_found.push(...website_result);
     }
   });
 
-  sorted.push({ website: 'none', children: sorted1 });
+  sorted_result.push({ website: 'none', children: sorted_not_found });
+  return sorted_result;
 }

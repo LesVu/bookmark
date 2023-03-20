@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { readFile, writeFile } from './utils/filesystem';
-import { extractBookmark } from './utils/bookmark';
+import { extractBookmark, sortBookmark } from './utils/bookmark';
 import { load } from 'cheerio';
 
 // console.log(readFile('./statics/test.json'));
@@ -9,4 +9,7 @@ import { load } from 'cheerio';
 // console.log(fs.existsSync(path.resolve('./static')));
 // console.log(path.resolve('./static'));
 
-// console.log(extractBookmark(readFile('./static/bookmarks.html') as string));
+writeFile(
+  './static/data_sorted.json',
+  sortBookmark(extractBookmark(readFile('./static/bookmarks.html') as string))
+);
