@@ -26,3 +26,9 @@ export interface Config extends Content {
     folder_exclude_size: string;
   };
 }
+
+export interface puppeteerOption {
+  url: string;
+  waiting_time?: number;
+  user_agent?: string;
+}

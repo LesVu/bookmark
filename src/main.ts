@@ -1,7 +1,11 @@
 import { readFile, writeFile } from './utils/filesystem';
-import { extractBookmark, generateBookmark, sortBookmark } from './utils/bookmark';
+import { extractBookmark, generateBookmark, NHSorter, sortBookmark } from './utils/bookmark';
 
-writeFile(
-  './static/generated.html',
-  generateBookmark(sortBookmark(extractBookmark(readFile('./static/bookmarks.html') as string)))
-);
+(async () => {
+  writeFile(
+    './static/generated.html',
+    generateBookmark(
+      await NHSorter(sortBookmark(extractBookmark(readFile('./static/bookmarks.html') as string)))
+    )
+  );
+})();
