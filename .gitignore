@@ -4,4 +4,3 @@ node_modules
 static
 config.toml
 backup_old
-data.json

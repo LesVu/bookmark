@@ -32,3 +32,40 @@ export interface puppeteerOption {
   waiting_time?: number;
   user_agent?: string;
 }
+
+interface Tags {
+  id: number;
+  type: string;
+  name: string;
+  url: string;
+  count: number;
+}
+
+interface Images {
+  pages: Array<{ t: string; w: number; h: number }>;
+  cover: { t: string; w: number; h: number };
+  thumbnail: { t: string; w: number; h: number };
+}
+
+export interface APIBook {
+  title: {
+    english: string;
+    japanese: string;
+    pretty: string;
+  };
+  id: number | string;
+
+  media_id: number | string;
+
+  num_favorites: number | string;
+
+  num_pages: number | string;
+
+  scanlator: string;
+
+  upload_date: number | string;
+
+  images: Images;
+
+  tags: Array<Tags>;
+}

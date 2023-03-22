@@ -57,7 +57,7 @@ export async function puppeteerBrowser(
   puppeteer.use(Aua());
 
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     args: ['--no-sandbox'],
     executablePath: executablePath(),
   });

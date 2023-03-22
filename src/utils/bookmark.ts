@@ -1,20 +1,16 @@
-// @ts-nocheck
 import { load } from 'cheerio';
-import { writeFileSync } from 'fs';
-import { Bookmark_Item, Bookmark } from '../types/bookmark_types';
+import fs from 'fs';
+import { Bookmark_Item, Bookmark, APIBook } from '../types/bookmark_types';
 import { sortByKey, readConfig, puppeteerBrowser, sleep } from './misc';
 
 export function extractBookmark(data: string) {
   const $ = load(data);
   let anchor_tag = $('DL DT A');
-  // let h3tag = $('H3');
-  // console.log(atag.get(0).attribs.href);
-  // console.log(atag.get(0).children[0].data);
-  // console.log(atag.get(0).parent.parent.parent.children[0].children[0].data);
-  let count = 0;
+
+  // let count = 0;s
   let array_sorted: Bookmark_Item[] = [];
   anchor_tag.get().forEach(async i => {
-    count++;
+    // count++;
     if (i.attribs['href'] && i.children[0]) {
       array_sorted.push({
         href: i.attribs['href'],
@@ -23,42 +19,14 @@ export function extractBookmark(data: string) {
     }
   });
 
-  /* This code dk why i write */
-  // let tmp3 = [];
-  // let tmp4 = [];
-  // h3tag.get().forEach(i => {
-  //   let tmp = [
-  //     { folder: (i.children[0] as unknown as Text).data, children: [] },
-  //   ];
-  //   // tmp4 = [];
-  //   tmp.forEach(iarray => {
-  //     let tmp2 = [];
-  //     if ((i.children[0] as unknown as Text).data == iarray.folder) {
-  //       anchor_tag.get().forEach(i2 => {
-  //         if (
-  //           (i.children[0] as unknown as Text).data ==
-  //           (i2.parent.parent.parent.children[0].children[0] as unknown as Text)
-  //             .data
-  //         ) {
-  //           tmp2.push({ href: i2.attribs.href, name: i2.children[0].data });
-  //         } else if (
-  //           i2.parent.parent.parent.children[0].children[0].data == 'Bookmarks'
-  //         ) {
-  //           tmp4.push({ href: i2.attribs.href, name: i2.children[0].data });
-  //         }
-  //       });
-  //     }
-  //     tmp3.push({ folder: i.children[0].data, children: [...tmp2] });
-  //   });
-  // });
-
-  // tmp3[0].children = [...tmp4];
-
   array_sorted = sortByKey(array_sorted, 'href');
   array_sorted = sortByKey(array_sorted, 'name');
 
-  console.log('Total Bookmarks:', count);
-  return array_sorted;
+  const uniqueBookmark = [...new Map(array_sorted.map(v => [v.href, v])).values()];
+
+  // console.log('Total Bookmarks:', count);
+  console.log('Total Bookmarks without dupes:', uniqueBookmark.length);
+  return uniqueBookmark;
 }
 
 export function sortBookmark(data: Bookmark_Item[]) {
@@ -174,7 +142,12 @@ export async function NHSorter(data: Bookmark[]) {
   data.forEach(i => {
     if (i.website == 'nhentai') {
       i.children.forEach(j => {
-        j.children.forEach(k => {
+        (
+          j as {
+            website: string;
+            children: Bookmark_Item[];
+          }
+        ).children.forEach(k => {
           if (k.href) {
             let match = k.href.match(/\/(\d{4,})(?=\/|$)/);
             if (match) {
@@ -185,54 +158,19 @@ export async function NHSorter(data: Bookmark[]) {
       });
     }
   });
-  console.log(codes);
-  let value: Bookmark[];
-  let json_data = [];
+  let json_data: APIBook[] = [];
+
+  const filter_data = data.filter(e => {
+    return e.website !== 'nhentai';
+  });
 
   await puppeteerBrowser({ url: 'https://nhentai.net' }, async page => {
     await sleep(30000);
-    interface Tags {
-      id: number;
-      type: string;
-      name: string;
-      url: string;
-      count: number;
-    }
 
-    interface Images {
-      pages: Array<{ t: string; w: number; h: number }>;
-      cover: { t: string; w: number; h: number };
-      thumbnail: { t: string; w: number; h: number };
-    }
-
-    type APIBook = {
-      title: {
-        english: string;
-        japanese: string;
-        pretty: string;
-      };
-      id: number | string;
-
-      media_id: number | string;
-
-      num_favorites: number | string;
-
-      num_pages: number | string;
-
-      scanlator: string;
-
-      upload_date: number | string;
-
-      images: Images;
-
-      tags: Array<Tags>;
-    };
-
-    const filter_data = data.filter(e => {
-      return e.website !== 'nhentai';
-    });
-
-    let placeholder: Bookmark[] = [
+    let placeholder: {
+      website: string;
+      children: Bookmark_Item[];
+    }[] = [
       { website: 'lolicon', children: [] },
       { website: 'shotacon', children: [] },
       { website: 'big breasts', children: [] },
@@ -243,25 +181,36 @@ export async function NHSorter(data: Bookmark[]) {
       { website: 'noTag', children: [] },
     ];
 
+    if (fs.existsSync('data_NH.json')) {
+      json_data = JSON.parse(fs.readFileSync('data_NH.json', 'utf8'));
+    } else {
+      json_data = [];
+    }
+    let count = 0;
     for (let i = 0; i < codes.length; i++) {
       const code = codes[i];
       try {
-        const url = `https://nhentai.net/api/gallery/${code}`;
-        await page.goto(url);
-
-        const json: APIBook | { error: string } = await page.evaluate(() => {
-          return JSON.parse(document!.querySelector('body')!.innerText);
-        });
-        json_data.push(json);
+        // Might error but i done with this shit
+        let json: APIBook;
+        if (json_data.length == 0 || !json_data.find(e => e.id == code)) {
+          const url = `https://nhentai.net/api/gallery/${code}`;
+          await page.goto(url);
+          json = await page.evaluate(() => {
+            return JSON.parse(document!.querySelector('body')!.innerText);
+          });
+          // if (json.error) {
+          //   throw `${code}: ${json.error}`;
+          // }
+          json_data.push(json);
+        } else {
+          json = json_data.find(e => e.id == code)!;
+        }
         let // extension,
           tag: string[] = [];
 
-        if ('error' in json) {
-          throw `${code}: ${json.error}`;
-        }
-
-        json.tags.forEach(item => {
-          switch (item.name) {
+        for (let q = 0; q < json.tags.length; q++) {
+          const element = json.tags[q]!;
+          switch (element.name) {
             case 'lolicon':
               tag.push('lolicon');
               break;
@@ -289,41 +238,7 @@ export async function NHSorter(data: Bookmark[]) {
             default:
               break;
           }
-        });
-
-        // switch (json.images.cover.t) {
-        //   case 'j':
-        //   case 'jpg':
-        //   case 'jpeg':
-        //     extension = 'jpg';
-        //     break;
-        //   case 'p':
-        //   case 'png':
-        //     extension = 'png';
-        //     break;
-        //   case 'g':
-        //   case 'gif':
-        //     extension = 'gif';
-        //     break;
-        // }
-
-        // switch (tag.length) {
-        //   case 0:
-        //     pathToWrite = `./static/noTags/${code}.${extension}`;
-        //     break;
-        //   case 1:
-        //     pathToWrite = `./static/${tag[0]}/${code}.${extension}`;
-        //     break;
-        //   case 2:
-        //     pathToWrite = `./static/twoTags/${code}-(${tag.join(', ')}).${extension}`;
-        //     break;
-        //   case 3:
-        //     pathToWrite = `./static/threeTags/${code}-(${tag.join(', ')}).${extension}`;
-        //     break;
-        //   default:
-        //     pathToWrite = `./static/multiTags/${code}-(${tag.join(', ')}).${extension}`;
-        //     break;
-        // }
+        }
 
         // if (json.num_pages >= 100) {
         //   pathToWrite = `./static/pagemorethan100/${code}-(${
@@ -331,37 +246,40 @@ export async function NHSorter(data: Bookmark[]) {
         //   }).${extension}`;
         // }
 
-        data.forEach(e => {
+        for (let e of data) {
           if (e.website == 'nhentai') {
-            e.children.forEach(j => {
-              if (!('href' in j)) {
-                j.children.forEach(m => {
-                  if (m.href == `https://nhentai.net/g/${code}`) {
-                    placeholder.forEach(h => {
-                      if (tag) {
-                        if (h.website == tag[0]) {
-                          h.children.push(m);
-                        }
-                      } else {
-                        if (h.website == 'noTag') {
-                          h.children.push(m);
-                        }
-                      }
-                    });
+            for (let g of e.children) {
+              for (const h of (
+                g as {
+                  website: string;
+                  children: Bookmark_Item[];
+                }
+              ).children) {
+                if (h.href == `https://nhentai.net/g/${code}/`) {
+                  if (tag.length == 0) {
+                    // console.log('reach');
+                    placeholder[7]!.children.push(h);
+                  } else {
+                    // console.log('reachehhh');
+                    for (let j of tag) {
+                      placeholder.find(e => e.website == j)!.children.push(h);
+                    }
                   }
-                });
+                }
               }
-            });
+            }
           }
-        });
+        }
       } catch (err) {
         console.log(err);
+        count++;
       }
     }
-    value = placeholder;
+    console.log('Broken Count:', count);
+    filter_data.unshift({ website: 'nhentai', children: placeholder });
     return Promise.resolve();
   });
-  let json_data1 = JSON.stringify(json_data, null, 2);
-  writeFileSync('./data.json', json_data1);
-  return value;
+
+  fs.writeFileSync('./data_NH.json', JSON.stringify(json_data));
+  return filter_data;
 }
