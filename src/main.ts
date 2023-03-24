@@ -2,7 +2,7 @@ import { readFile, writeFile } from './utils/filesystem';
 import { extractBookmark, generateBookmark, NHSorter, sortBookmark } from './utils/bookmark';
 // import { Bookmark_Item } from './types/bookmark_types';
 
-const sortNH = true;
+const sortNH = false;
 
 (async () => {
   if (sortNH) {

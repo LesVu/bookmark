@@ -3,14 +3,12 @@ import fs from 'fs';
 import { Bookmark_Item, Bookmark, APIBook } from '../types/bookmark_types';
 import { sortByKey, readConfig, puppeteerBrowser, sleep } from './misc';
 
-export function extractBookmark(data: string) {
+export function extractBookmark(data: string, use_no_unique: boolean = true) {
   const $ = load(data);
   let anchor_tag = $('DL DT A');
 
-  // let count = 0;s
   let array_sorted: Bookmark_Item[] = [];
   anchor_tag.get().forEach(async i => {
-    // count++;
     if (i.attribs['href'] && i.children[0]) {
       array_sorted.push({
         href: i.attribs['href'],
@@ -22,11 +20,14 @@ export function extractBookmark(data: string) {
   array_sorted = sortByKey(array_sorted, 'href');
   array_sorted = sortByKey(array_sorted, 'name');
 
-  const uniqueBookmark = [...new Map(array_sorted.map(v => [v.href, v])).values()];
-
-  // console.log('Total Bookmarks:', count);
-  console.log('Total Bookmarks without dupes:', uniqueBookmark.length);
-  return uniqueBookmark;
+  if (use_no_unique) {
+    console.log('Total Bookmarks:', array_sorted.length);
+    return array_sorted;
+  } else {
+    const uniqueBookmark = [...new Map(array_sorted.map(v => [v.href, v])).values()];
+    console.log('Total Bookmarks without dupes:', uniqueBookmark.length);
+    return uniqueBookmark;
+  }
 }
 
 export function sortBookmark(data: Bookmark_Item[]) {
