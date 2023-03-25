@@ -1,6 +1,6 @@
 import { load } from 'cheerio';
 import fs from 'fs';
-import { Bookmark_Item, Bookmark, APIBook } from '../types/bookmark_types';
+import { Bookmark_Item, Bookmark, APIBook, Tags } from '../types/bookmark_types';
 import { sortByKey, readConfig, puppeteerBrowser, sleep } from './misc';
 
 export function extractBookmark(data: string, use_no_unique: boolean = true) {
@@ -168,19 +168,14 @@ export async function NHSorter(data: Bookmark[]) {
   await puppeteerBrowser({ url: 'https://nhentai.net' }, async page => {
     await sleep(30000);
 
+    const tagList = ['lolicon', 'anal', 'shotacon', 'big breasts', 'yaoi', 'yuri', 'noTags'];
     let placeholder: {
       website: string;
       children: Bookmark_Item[];
-    }[] = [
-      { website: 'lolicon', children: [] },
-      { website: 'shotacon', children: [] },
-      { website: 'big breasts', children: [] },
-      { website: 'yaoi', children: [] },
-      { website: 'yuri', children: [] },
-      { website: 'crossdressing', children: [] },
-      { website: 'pregnant', children: [] },
-      { website: 'noTag', children: [] },
-    ];
+    }[] = [];
+    for (let i = 0; i < tagList.length; i++) {
+      placeholder.push({ website: tagList[i]!, children: [] });
+    }
 
     if (fs.existsSync('data_NH.json')) {
       json_data = JSON.parse(fs.readFileSync('data_NH.json', 'utf8'));
@@ -206,38 +201,73 @@ export async function NHSorter(data: Bookmark[]) {
         } else {
           json = json_data.find(e => e.id == code)!;
         }
-        let // extension,
-          tag: string[] = [];
+        // let // extension,
+        //   tag: string[] = [];
 
-        for (let q = 0; q < json.tags.length; q++) {
-          const element = json.tags[q]!;
-          switch (element.name) {
-            case 'lolicon':
-              tag.push('lolicon');
+        // for (let q = 0; q < json.tags.length; q++) {
+        //   const element = json.tags[q]!;
+        //   // switch (element.name) {
+        //   //   case 'lolicon':
+        //   //     tag.push('lolicon');
+        //   //     break;
+        //   //   // case 'anal':
+        //   //   //   tag.push('anal');
+        //   //   //   break;
+        //   //   case 'shotacon':
+        //   //     tag.push('shotacon');
+        //   //     break;
+        //   //   case 'big breasts':
+        //   //     tag.push('big breasts');
+        //   //     break;
+        //   //   case 'yaoi':
+        //   //     tag.push('yaoi');
+        //   //     break;
+        //   //   case 'yuri':
+        //   //     tag.push('yuri');
+        //   //     break;
+        //   //   case 'crossdressing':
+        //   //     tag.push('crossdressing');
+        //   //     break;
+        //   //   case 'pregnant':
+        //   //     tag.push('pregnant');
+        //   //     break;
+        //   //   default:
+        //   //     break;
+        //   // }
+        // }
+
+        if (json.tags) {
+          const matchedTags: Tags[] = json.tags.filter(tag => tagList.includes(tag.name));
+
+          let firstMatchedTag: Tags | undefined;
+          for (let i = 0; i < tagList.length; i++) {
+            firstMatchedTag = matchedTags.find(tag => tag.name === tagList[i]);
+            if (firstMatchedTag) {
               break;
-            // case 'anal':
-            //   tag.push('anal');
-            //   break;
-            case 'shotacon':
-              tag.push('shotacon');
-              break;
-            case 'big breasts':
-              tag.push('big breasts');
-              break;
-            case 'yaoi':
-              tag.push('yaoi');
-              break;
-            case 'yuri':
-              tag.push('yuri');
-              break;
-            case 'crossdressing':
-              tag.push('crossdressing');
-              break;
-            case 'pregnant':
-              tag.push('pregnant');
-              break;
-            default:
-              break;
+            }
+          }
+          for (let e of data) {
+            if (e.website == 'nhentai') {
+              for (let g of e.children) {
+                for (const h of (
+                  g as {
+                    website: string;
+                    children: Bookmark_Item[];
+                  }
+                ).children) {
+                  if (h.href == `https://nhentai.net/g/${code}/`) {
+                    if (firstMatchedTag) {
+                      console.log('reachehhh');
+                      let objIndex = tagList.findIndex(obj => obj == firstMatchedTag?.name);
+                      placeholder[objIndex]?.children.push(h);
+                    } else {
+                      console.log('reach');
+                      placeholder[tagList.length - 1]?.children.push(h);
+                    }
+                  }
+                }
+              }
+            }
           }
         }
 
@@ -246,31 +276,6 @@ export async function NHSorter(data: Bookmark[]) {
         //     tag ? tag.join(', ') : 'empty'
         //   }).${extension}`;
         // }
-
-        for (let e of data) {
-          if (e.website == 'nhentai') {
-            for (let g of e.children) {
-              for (const h of (
-                g as {
-                  website: string;
-                  children: Bookmark_Item[];
-                }
-              ).children) {
-                if (h.href == `https://nhentai.net/g/${code}/`) {
-                  if (tag.length == 0) {
-                    // console.log('reach');
-                    placeholder[7]!.children.push(h);
-                  } else {
-                    // console.log('reachehhh');
-                    for (let j of tag) {
-                      placeholder.find(e => e.website == j)!.children.push(h);
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
       } catch (err) {
         console.log(err);
         count++;

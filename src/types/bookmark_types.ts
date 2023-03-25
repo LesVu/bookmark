@@ -33,7 +33,7 @@ export interface puppeteerOption {
   user_agent?: string;
 }
 
-interface Tags {
+export interface Tags {
   id: number;
   type: string;
   name: string;

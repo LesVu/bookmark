@@ -2,15 +2,13 @@ import { readFile, writeFile } from './utils/filesystem';
 import { extractBookmark, generateBookmark, NHSorter, sortBookmark } from './utils/bookmark';
 // import { Bookmark_Item } from './types/bookmark_types';
 
-const sortNH = false;
+const sortNH = true;
 
 (async () => {
   if (sortNH) {
     writeFile(
       './static/generated.html',
-      generateBookmark(
-        await NHSorter(sortBookmark(extractBookmark(readFile('./static/bookmarks.html') as string)))
-      )
+      generateBookmark(await NHSorter(sortBookmark(extractBookmark(readFile('./static/bookmarks.html') as string))))
     );
   } else {
     writeFile(
