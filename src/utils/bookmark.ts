@@ -3,7 +3,7 @@ import fs from 'fs';
 import { Bookmark_Item, Bookmark, APIBook, Tags } from '../types/bookmark_types';
 import { sortByKey, readConfig, puppeteerBrowser, sleep } from './misc';
 
-export function extractBookmark(data: string, use_no_unique: boolean = true) {
+export function extractBookmark(data: string, use_no_unique: boolean = false) {
   const $ = load(data);
   let anchor_tag = $('DL DT A');
 
@@ -139,6 +139,7 @@ export function generateBookmark(data: Bookmark[]) {
 
 // Website specific sorter
 export async function NHSorter(data: Bookmark[]) {
+  const config = readConfig();
   let codes: string[] = [];
   data.forEach(i => {
     if (i.website == 'nhentai') {
@@ -168,7 +169,8 @@ export async function NHSorter(data: Bookmark[]) {
   await puppeteerBrowser({ url: 'https://nhentai.net' }, async page => {
     await sleep(30000);
 
-    const tagList = ['lolicon', 'anal', 'shotacon', 'big breasts', 'yaoi', 'yuri', 'noTags'];
+    // const tagList = ['lolicon', 'anal', 'shotacon', 'big breasts', 'yaoi', 'yuri', 'noTags'];
+    const tagList: string[] = [...(config.website?.nh_tags as string[]), 'noTags'];
     let placeholder: {
       website: string;
       children: Bookmark_Item[];
@@ -257,11 +259,11 @@ export async function NHSorter(data: Bookmark[]) {
                 ).children) {
                   if (h.href == `https://nhentai.net/g/${code}/`) {
                     if (firstMatchedTag) {
-                      console.log('reachehhh');
+                      // console.log('reachehhh');
                       let objIndex = tagList.findIndex(obj => obj == firstMatchedTag?.name);
                       placeholder[objIndex]?.children.push(h);
                     } else {
-                      console.log('reach');
+                      // console.log('reach');
                       placeholder[tagList.length - 1]?.children.push(h);
                     }
                   }

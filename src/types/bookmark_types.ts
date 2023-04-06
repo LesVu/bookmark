@@ -24,6 +24,7 @@ export interface Config extends Content {
   website?: {
     folder_size: string;
     folder_exclude_size: string;
+    nh_tags: string[];
   };
 }
 

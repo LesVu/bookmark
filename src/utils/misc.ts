@@ -34,7 +34,12 @@ website = []
 folder_size = 50
 
 # Minimum number to not sort
-folder_exclude_size = 10`;
+folder_exclude_size = 10
+
+# Tags for NHSorter
+# Default noTags
+# Tags: 'lolicon', 'shotacon', 'big breasts', 'yaoi', 'yuri'
+nh_tags = []`;
     fs.writeFileSync('./config.toml', default_config_buffer);
     let default_config: Config = TOML.parse(default_config_buffer);
     return default_config;
@@ -43,10 +48,7 @@ folder_exclude_size = 10`;
 
 export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-export async function puppeteerBrowser(
-  option: puppeteerOption,
-  callback: (page: Page) => Promise<void>
-) {
+export async function puppeteerBrowser(option: puppeteerOption, callback: (page: Page) => Promise<void>) {
   if (option.user_agent === undefined)
     option.user_agent =
       'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36';
