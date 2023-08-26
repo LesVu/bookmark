@@ -1,12 +1,8 @@
 import fs from 'fs';
 import TOML from '@ltd/j-toml';
 import { Config, puppeteerOption } from '../types/bookmark_types';
-import { Page, executablePath } from 'puppeteer';
+import { Page } from 'puppeteer';
 import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import AdBlocker from 'puppeteer-extra-plugin-adblocker';
-import Aua from 'puppeteer-extra-plugin-anonymize-ua';
-import Recaptcha from 'puppeteer-extra-plugin-recaptcha';
 
 export function sortByKey<T, K extends keyof T>(array: T[], key: K): T[] {
   return array.sort(function (a, b) {
@@ -51,31 +47,48 @@ export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 export async function puppeteerBrowser(option: puppeteerOption, callback: (page: Page) => Promise<void>) {
   if (option.user_agent === undefined)
     option.user_agent =
-      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36';
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36';
 
-  puppeteer.use(StealthPlugin());
-  puppeteer.use(AdBlocker());
-  puppeteer.use(Recaptcha());
-  puppeteer.use(Aua());
+  // const stealthPlugin = StealthPlugin();
+  // stealthPlugin.enabledEvasions.delete('iframe.contentWindow');
+  // stealthPlugin.enabledEvasions.delete('media.codecs');
+  // puppeteer.use(stealthPlugin);
+  puppeteer.use(require('puppeteer-extra-plugin-stealth/evasions/navigator.webdriver')());
+  puppeteer.use(require('puppeteer-extra-plugin-stealth/evasions/sourceurl')());
+  const UserAgentOverride = require('puppeteer-extra-plugin-stealth/evasions/user-agent-override');
+  // Define custom UA and locale
+  const ua = UserAgentOverride({
+    userAgent: option.user_agent,
+  });
+  puppeteer.use(ua);
 
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     args: ['--no-sandbox'],
-    executablePath: executablePath(),
   });
   const page = (await browser.pages())[0];
+  // const page = await browser.newPage();
 
   if (!page) throw new Error('browser problem');
 
-  await page.setViewport({ width: 800, height: 600 });
+  await page.setUserAgent(option.user_agent, {
+    platform: 'Windows',
+    platformVersion: '10',
+    architecture: 'x64',
+    model: 'x64',
+    mobile: false,
+  });
 
-  await page.setUserAgent(option.user_agent);
+  await page.setViewport({ width: 800, height: 600 });
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty(navigator, 'platform', { value: 'Win32' });
+  });
 
   await page.goto(option.url);
   if (option.waiting_time) await sleep(option.waiting_time);
 
   await callback(page);
 
-  await browser.close();
+  // await browser.close();
   return;
 }

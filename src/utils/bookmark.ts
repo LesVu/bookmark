@@ -3,7 +3,7 @@ import fs from 'fs';
 import { Bookmark_Item, Bookmark, APIBook, Tags } from '../types/bookmark_types';
 import { sortByKey, readConfig, puppeteerBrowser, sleep } from './misc';
 
-export function extractBookmark(data: string, use_no_unique: boolean = false) {
+export function extractBookmark(data: string, use_no_unique: boolean = false): Bookmark_Item[] {
   const $ = load(data);
   let anchor_tag = $('DL DT A');
 
@@ -30,7 +30,7 @@ export function extractBookmark(data: string, use_no_unique: boolean = false) {
   }
 }
 
-export function sortBookmark(data: Bookmark_Item[]) {
+export function sortBookmark(data: Bookmark_Item[]): Bookmark[] {
   let config = readConfig();
 
   let website: string[] = [];
@@ -40,8 +40,21 @@ export function sortBookmark(data: Bookmark_Item[]) {
       .replace(/^https?:\/\//, '')
       .replace(/^www\d?\./, '')
       .replace(/\..*$/, '');
-    if (!website.includes(web)) website.push(web);
+    if (!web) {
+      console.error('Error: Website not found', i.href);
+    }
+    // let web: string;
+    // let found = i.href.match(/^(?:https?:\/\/)?(?:[^.\n]+\.)?([^.\n]+\.[a-z]{2,})(?:$|\/)/);
+    // if (found) {
+    //   web = String(found![1]);
+    // } else {
+    //   web = String(i.href.match(/^(?:https?:\/\/)?(?:www\.)?([^\/]+)\//)![1]);
+    // }
+    if (web) {
+      if (!website.includes(web)) website.push(web);
+    }
   });
+  // console.log(website);
 
   let sorted_result: Bookmark[] = [];
   let sorted_not_found: Bookmark_Item[] = [];
@@ -97,7 +110,7 @@ export function sortBookmark(data: Bookmark_Item[]) {
   return sorted_result;
 }
 
-export function generateBookmark(data: Bookmark[]) {
+export function generateBookmark(data: Bookmark[]): string {
   let payload = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
 <!-- This is an automatically generated file.
      It will be read and overwritten.
@@ -138,8 +151,9 @@ export function generateBookmark(data: Bookmark[]) {
 }
 
 // Website specific sorter
-export async function NHSorter(data: Bookmark[]) {
+export async function NHSorter(data: Bookmark[]): Promise<Bookmark[]> {
   const config = readConfig();
+  const pageMin = 13;
   let codes: string[] = [];
   data.forEach(i => {
     if (i.website == 'nhentai') {
@@ -170,7 +184,7 @@ export async function NHSorter(data: Bookmark[]) {
     await sleep(30000);
 
     // const tagList = ['lolicon', 'anal', 'shotacon', 'big breasts', 'yaoi', 'yuri', 'noTags'];
-    const tagList: string[] = [...(config.website?.nh_tags as string[]), 'noTags'];
+    const tagList: string[] = [...(config.website?.nh_tags as string[]), `pagelessthan${pageMin}`, 'noTags'];
     let placeholder: {
       website: string;
       children: Bookmark_Item[];
@@ -258,7 +272,9 @@ export async function NHSorter(data: Bookmark[]) {
                   }
                 ).children) {
                   if (h.href == `https://nhentai.net/g/${code}/`) {
-                    if (firstMatchedTag) {
+                    if ((json.num_pages as number) <= pageMin) {
+                      placeholder[tagList.length - 2]?.children.push(h);
+                    } else if (firstMatchedTag) {
                       // console.log('reachehhh');
                       let objIndex = tagList.findIndex(obj => obj == firstMatchedTag?.name);
                       placeholder[objIndex]?.children.push(h);
@@ -290,4 +306,21 @@ export async function NHSorter(data: Bookmark[]) {
 
   fs.writeFileSync('./data_NH.json', JSON.stringify(json_data));
   return filter_data;
+}
+
+// Website specific sorter
+export async function JVGRSorter(data: Bookmark[]) {
+  const config = readConfig();
+  let urls: string[] = [];
+  data.forEach(i => {
+    if (i.website == 'jav') {
+      i.children.forEach(j => {
+        (j as { website: string; children: Bookmark_Item[] }).children.forEach(k => {
+          urls.push(k.href);
+        });
+      });
+    }
+  });
+  // console.log(urls);
+  // await puppeteerBrowser({ url: '' }, async page => {});
 }
