@@ -1,0 +1,15 @@
+{
+  "name": "sortertools",
+  "version": "0.0.1",
+  "description": "Bookmark Sorter",
+  "main": "src/index.js",
+  "scripts": {},
+  "keywords": [
+    "sorter"
+  ],
+  "author": "John Ferse",
+  "license": "ISC",
+  "devDependencies": {
+    "chrome-types": "^0.1.227"
+  }
+}

@@ -21,5 +21,8 @@
     "@types/node": "^18.15.3",
     "nodemon": "^3.0.1",
     "typescript": "^5.2.2"
-  }
+  },
+  "workspaces": [
+    "chrome_extension"
+  ]
 }
