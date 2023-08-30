@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "main.ts",
+  "engines": {
+    "node": ">=18.x"
+  },
   "scripts": {
     "run": "tsc && node build/main.js",
     "build": "tsc"
