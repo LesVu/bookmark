@@ -26,6 +26,6 @@
     "typescript": "^5.2.2"
   },
   "workspaces": [
-    "chrome_extension"
+    "chrome-extension"
   ]
 }
