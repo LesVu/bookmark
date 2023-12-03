@@ -311,10 +311,10 @@ export async function NHSorter(data: Bookmark[]): Promise<Bookmark[]> {
     }
     console.log('Broken Count:', count);
     filter_data.unshift({ website: 'nhentai', children: placeholder });
-    child.kill();
     return Promise.resolve();
   });
 
+  child.kill();
   fs.writeFileSync('./data_NH.json', JSON.stringify(json_data));
   return filter_data;
 }
