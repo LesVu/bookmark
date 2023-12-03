@@ -2,6 +2,7 @@ import { load } from 'cheerio';
 import fs from 'fs';
 import { Bookmark_Item, Bookmark, APIBook, Tags } from '../types/bookmark_types';
 import { sortByKey, readConfig, puppeteerBrowser, sleep } from './misc';
+import { spawn } from 'child_process';
 
 export function extractBookmark(data: string, use_no_unique: boolean = false): Bookmark_Item[] {
   const $ = load(data);
@@ -179,9 +180,18 @@ export async function NHSorter(data: Bookmark[]): Promise<Bookmark[]> {
   const filter_data = data.filter(e => {
     return e.website !== 'nhentai';
   });
-
+  const child = spawn('chromium', ['--no-sandbox', '--remote-debugging-port=9222'], {
+    stdio: 'ignore',
+    shell: '/bin/bash',
+  });
+  await sleep(2000);
   await puppeteerBrowser({ url: 'https://nhentai.net' }, async page => {
-    await sleep(30000);
+    await sleep(5000);
+    await page.reload();
+  });
+  await sleep(10000);
+  await puppeteerBrowser({ url: 'https://nhentai.net' }, async page => {
+    // await sleep(30000);
 
     // const tagList = ['lolicon', 'anal', 'shotacon', 'big breasts', 'yaoi', 'yuri', 'noTags'];
     const tagList: string[] = [...(config.website?.nh_tags as string[]), `pagelessthan${pageMin}`, 'noTags'];
@@ -301,6 +311,7 @@ export async function NHSorter(data: Bookmark[]): Promise<Bookmark[]> {
     }
     console.log('Broken Count:', count);
     filter_data.unshift({ website: 'nhentai', children: placeholder });
+    child.kill();
     return Promise.resolve();
   });
 

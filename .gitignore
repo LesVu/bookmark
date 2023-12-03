@@ -1,6 +1,6 @@
 dist
 build
 node_modules
-./static
+static
 config.toml
 backup_old
