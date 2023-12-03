@@ -1,7 +1,7 @@
 import fs from 'fs';
 import TOML from '@ltd/j-toml';
 import { Config, puppeteerOption } from '../types/bookmark_types';
-import { Page } from 'puppeteer';
+import { Page, Browser } from 'puppeteer';
 import puppeteer from 'puppeteer';
 
 export function sortByKey<T, K extends keyof T>(array: T[], key: K): T[] {
@@ -44,10 +44,13 @@ nh_tags = []`;
 
 export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-export async function puppeteerBrowser(option: puppeteerOption, callback: (page: Page) => Promise<void>) {
+export async function puppeteerBrowser(
+  option: puppeteerOption,
+  callback: (page: Page, browser?: Browser) => Promise<void>
+) {
   if (option.user_agent === undefined)
     option.user_agent =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36';
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36';
 
   // const browser = await puppeteer.launch({
   //   headless: false,
@@ -69,8 +72,9 @@ export async function puppeteerBrowser(option: puppeteerOption, callback: (page:
   await page.goto(option.url);
   if (option.waiting_time) await sleep(option.waiting_time);
 
-  await callback(page);
+  await callback(page, browser);
 
-  await browser.close();
-  return;
+  if (browser.connected) browser.disconnect();
+
+  return Promise.resolve();
 }
