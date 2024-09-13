@@ -1,0 +1,17 @@
+{
+  "tasks": {
+    "main": "deno run --allow-env --allow-sys --allow-read --allow-write src/main.ts",
+    "test": "deno test --allow-env --allow-sys --allow-read --allow-write src/main_test.ts",
+    "dev": "deno run --watch main.ts"
+  },
+  "imports": {
+    "@ltd/j-toml": "npm:@ltd/j-toml@^1.38.0",
+    "fs": "node:fs",
+    "path": "node:path",
+    "puppeteer": "npm:puppeteer@^22.12.1",
+    "cheerio": "npm:cheerio@^1.0.0-rc.12"
+  },
+  "compilerOptions": {
+    "lib": ["dom", "deno.ns"]
+  }
+}

@@ -1,0 +1,7 @@
+.direnv
+dist
+build
+node_modules
+static
+config.toml
+backup_old
