@@ -1,6 +1,6 @@
 import { load } from 'cheerio';
 import fs from 'fs';
-import { Bookmark, Bookmarks, APIBook, Config } from '../types/bookmark_types.ts';
+import { Bookmark, Bookmarks, APIBook, Config, Bookmarks_Parts } from '../types/bookmark_types.ts';
 import { sortByKey, readConfig, puppeteerBrowser, sleep } from './misc.ts';
 // import { spawn } from 'npm:child_process';
 
@@ -165,75 +165,72 @@ export function generateBookmark(bookmarks: Bookmarks[]): string {
 
 export async function NHSorter(data: Bookmarks[]): Promise<Bookmarks[]> {
   const config = readConfig();
-  const pageMin = 13;
-  const codes: string[] = [];
-  data.forEach(bookmark => {
-    if (bookmark.website === 'nhentai') {
-      codes.push(
-        ...bookmark.children.flatMap(child => {
-          const match = (child as Bookmark).href.match(/\/(\d{4,})(?=\/|$)/);
-          return match ? [match[1]] : [];
-        })
-      );
-    }
-  });
-  let jsonData: APIBook[] = [];
+  const minPages = 16;
+  const maxPages = 100;
+  const codes = data
+    .filter(bookmark => bookmark.website === 'nhentai')
+    .flatMap(bookmark => bookmark.children.flatMap(child => (child as Bookmarks).children as Bookmark[]))
+    .map(child => child.href.match(/\/(\d{4,})(?=\/|$)/)?.[1])
+    .filter(Boolean)
+    .slice(0, 100);
 
   const filteredData = data.filter(bookmark => bookmark.website !== 'nhentai');
-  await sleep(2000);
-  await puppeteerBrowser({ url: 'https://nhentai.net' }, async page => {
-    await sleep(5000);
-    await page.reload();
-  });
-  await sleep(10000);
-  await puppeteerBrowser({ url: 'https://nhentai.net' }, async page => {
-    await sleep(30000);
+  let jsonData: APIBook[] = [];
 
-    const tagList = [...(config.website?.nh_tags as string[]), `pagelessthan${pageMin}`, 'noTags'];
-    const placeholders: Bookmarks[] = tagList.map(tag => ({ website: tag, children: [] }));
+  if (fs.existsSync('data_NH.json')) {
+    jsonData = JSON.parse(fs.readFileSync('data_NH.json', 'utf8'));
+  }
 
-    if (fs.existsSync('data_NH.json')) {
-      jsonData = JSON.parse(fs.readFileSync('data_NH.json', 'utf8'));
-    }
-    let brokenCount = 0;
+  const tagList = [
+    ...(config.website?.nh_tags as string[]),
+    `pagemorethan${maxPages}`,
+    `pagelessthan${minPages}`,
+    'notags',
+  ];
+  const placeholders: Bookmarks[] = tagList.map(tag => ({ website: tag, children: [] }));
+
+  await puppeteerBrowser({ url: 'https://nhentai.net' }, async page => {
+    // await page.screenshot({ path: 'screenshot.png' });
+
     for (const code of codes) {
-      try {
-        if (!jsonData.find(book => book.id === code)) {
-          const url = `https://nhentai.net/api/gallery/${code}`;
-          await page.goto(url);
-          const json = await page.evaluate(() => JSON.parse(document!.querySelector('body')!.innerText));
-          jsonData.push(json);
-        }
-        const book = jsonData.find(book => book.id === code)!;
-        const matchedTags = book.tags.filter(tag => tagList.includes(tag.name));
-        const firstMatchedTag = matchedTags.find(tag => tagList.includes(tag.name));
+      if (!jsonData.find(book => book.id == code)) {
+        const url = `https://nhentai.net/api/gallery/${code}`;
+        await page.goto(url);
+        const json = await page.evaluate(() => JSON.parse(document.querySelector('body')!.innerText));
+        if (json.error) continue;
+        jsonData.push(json);
+      }
 
-        for (const bookmark of data) {
-          if (bookmark.website === 'nhentai') {
-            for (const child of bookmark.children) {
-              for (const grandchild of (child as { website: string; children: Bookmark[] }).children) {
-                if (grandchild.href === `https://nhentai.net/g/${code}/`) {
-                  if ((book.num_pages as number) <= pageMin) {
-                    placeholders[placeholders.length - 2].children.push(grandchild);
-                  } else if (firstMatchedTag) {
-                    const objIndex = tagList.findIndex(obj => obj === firstMatchedTag.name);
-                    placeholders[objIndex].children.push(grandchild);
-                  } else {
-                    placeholders[placeholders.length - 1].children.push(grandchild);
-                  }
+      const book = jsonData.find(book => book.id == code)!;
+      const matchedTags = book.tags.filter(tag => tagList.includes(tag.name));
+      const firstMatchedTag = matchedTags.find(tag => tagList.includes(tag.name));
+
+      for (const bookmark of data) {
+        if (bookmark.website === 'nhentai') {
+          for (const child of bookmark.children) {
+            for (const grandchild of (child as Bookmarks_Parts).children) {
+              if (grandchild.href == `https://nhentai.net/g/${code}/`) {
+                if ((book.num_pages as number) <= minPages) {
+                  placeholders[placeholders.length - 2].children.push(grandchild);
+                } else if ((book.num_pages as number) >= maxPages) {
+                  placeholders[placeholders.length - 3].children.push(grandchild);
+                } else if (firstMatchedTag) {
+                  const objIndex = tagList.findIndex(obj => obj === firstMatchedTag.name);
+                  placeholders[objIndex].children.push(grandchild);
+                } else {
+                  placeholders[placeholders.length - 1].children.push(grandchild);
                 }
+              } else if (!placeholders[placeholders.length - 1].children.includes(grandchild)) {
+                placeholders[placeholders.length - 1].children.push(grandchild);
               }
             }
           }
         }
-      } catch (err) {
-        brokenCount++;
       }
     }
-    console.log(`Broken Count: ${brokenCount}`);
-    filteredData.unshift({ website: 'nhentai', children: placeholders });
   });
 
+  filteredData.unshift({ website: 'nhentai', children: placeholders });
   fs.writeFileSync('./data_NH.json', JSON.stringify(jsonData));
   return filteredData;
 }
@@ -245,7 +242,7 @@ export async function JVGRSorter(data: Bookmarks[]) {
   data.forEach(i => {
     if (i.website == 'jav') {
       i.children.forEach(j => {
-        (j as { website: string; children: Bookmark[] }).children.forEach(k => {
+        (j as Bookmarks_Parts).children.forEach(k => {
           urls.push(k.href);
         });
       });

@@ -4,6 +4,7 @@
     "specifiers": {
       "jsr:@std/assert@1": "jsr:@std/assert@1.0.5",
       "jsr:@std/assert@^1.0.5": "jsr:@std/assert@1.0.5",
+      "jsr:@std/cli": "jsr:@std/cli@1.0.6",
       "jsr:@std/expect": "jsr:@std/expect@1.0.3",
       "jsr:@std/internal@^1.0.3": "jsr:@std/internal@1.0.3",
       "npm:@ltd/j-toml": "npm:@ltd/j-toml@1.38.0",
@@ -21,6 +22,9 @@
         "dependencies": [
           "jsr:@std/internal@^1.0.3"
         ]
+      },
+      "@std/cli@1.0.6": {
+        "integrity": "d22d8b38c66c666d7ad1f2a66c5b122da1704f985d3c47f01129f05abb6c5d3d"
       },
       "@std/expect@1.0.3": {
         "integrity": "d9cbd03323ef7feafd1e969ed85d5edb04ebbd9937b0fe7a52d5ff53be8e913a",

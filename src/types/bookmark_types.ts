@@ -6,14 +6,12 @@ export interface Bookmark {
 
 export interface Bookmarks {
   website: string;
-  children: Array<
-    | {
-        website: string;
-        children: Bookmark[];
-      }
-    | Bookmark
-    | Bookmarks
-  >;
+  children: Array<Bookmarks_Parts | Bookmark | Bookmarks>;
+}
+
+export interface Bookmarks_Parts {
+  website: string;
+  children: Bookmark[];
 }
 
 type Content = ReturnType<typeof parse>;
