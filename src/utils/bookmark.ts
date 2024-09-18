@@ -12,12 +12,11 @@ import { sortByKey, readConfig, puppeteerBrowser, sleep } from './misc.ts';
  *
  * If the `duplicate` parameter is set to `true`, then the function will
  * return the list of bookmarks without removing duplicates.
- *
  * @param {string} html The HTML string to extract the bookmarks from.
- * @param {boolean} [duplicate=false] Whether or not to remove duplicate bookmarks.
+ * @param {boolean} [removeDuplicates] Whether or not to remove duplicate bookmarks. Defaults to `false`.
  * @return {Bookmark[]} The list of extracted bookmarks.
  */
-export function extractBookmarks(html: string, duplicate: boolean = false): Bookmark[] {
+export function extractBookmarks(html: string, removeDuplicates: boolean = false): Bookmark[] {
   const $ = load(html);
   const anchorTags = $('DL DT A');
 
@@ -32,7 +31,7 @@ export function extractBookmarks(html: string, duplicate: boolean = false): Book
 
   const sortedBookmarks = sortByKey(bookmarks, 'href').sort((a, b) => a.name.localeCompare(b.name));
 
-  return duplicate ? sortedBookmarks : [...new Map(sortedBookmarks.map(v => [v.href, v])).values()];
+  return removeDuplicates ? sortedBookmarks : [...new Map(sortedBookmarks.map(v => [v.href, v])).values()];
 }
 
 /**
@@ -167,70 +166,121 @@ export async function NHSorter(data: Bookmarks[]): Promise<Bookmarks[]> {
   const config = readConfig();
   const minPages = 16;
   const maxPages = 100;
-  const codes = data
-    .filter(bookmark => bookmark.website === 'nhentai')
-    .flatMap(bookmark => bookmark.children.flatMap(child => (child as Bookmarks).children as Bookmark[]))
-    .map(child => child.href.match(/\/(\d{4,})(?=\/|$)/)?.[1])
-    .filter(Boolean)
-    .slice(0, 100);
-
   const filteredData = data.filter(bookmark => bookmark.website !== 'nhentai');
+  const bookmarks = data
+    .filter(bookmark => bookmark.website == 'nhentai')
+    .flatMap(child => (child as Bookmarks).children)
+    .flatMap(child => (child as Bookmarks_Parts).children);
+  const codes = bookmarks.map(child => child.href.match(/\/(\d{4,})(?=\/|$)/)?.[1]).filter(code => code != undefined);
+  const tagList = [
+    ...(config.website?.nh_tags as string[]),
+    'artist',
+    `pagemorethan${maxPages}`,
+    `pagelessthan${minPages}`,
+    'notags',
+  ];
+  const placeholders: Bookmarks[] = tagList.map(tag => ({ website: tag, children: [] }));
+  const codeBroken: string[] = [];
+
   let jsonData: APIBook[] = [];
 
   if (fs.existsSync('data_NH.json')) {
     jsonData = JSON.parse(fs.readFileSync('data_NH.json', 'utf8'));
   }
 
-  const tagList = [
-    ...(config.website?.nh_tags as string[]),
-    `pagemorethan${maxPages}`,
-    `pagelessthan${minPages}`,
-    'notags',
-  ];
-  const placeholders: Bookmarks[] = tagList.map(tag => ({ website: tag, children: [] }));
-
   await puppeteerBrowser({ url: 'https://nhentai.net' }, async page => {
-    // await page.screenshot({ path: 'screenshot.png' });
-
     for (const code of codes) {
       if (!jsonData.find(book => book.id == code)) {
         const url = `https://nhentai.net/api/gallery/${code}`;
         await page.goto(url);
         const json = await page.evaluate(() => JSON.parse(document.querySelector('body')!.innerText));
-        if (json.error) continue;
+        if (json.error) {
+          codeBroken.push(code);
+          continue;
+        }
         jsonData.push(json);
       }
 
       const book = jsonData.find(book => book.id == code)!;
-      const matchedTags = book.tags.filter(tag => tagList.includes(tag.name));
-      const firstMatchedTag = matchedTags.find(tag => tagList.includes(tag.name));
+      const firstMatchedTag = book.tags
+        .filter(tag => tagList.includes(tag.name))
+        .find(tag => tagList.includes(tag.name));
 
-      for (const bookmark of data) {
-        if (bookmark.website === 'nhentai') {
-          for (const child of bookmark.children) {
-            for (const grandchild of (child as Bookmarks_Parts).children) {
-              if (grandchild.href == `https://nhentai.net/g/${code}/`) {
-                if ((book.num_pages as number) <= minPages) {
-                  placeholders[placeholders.length - 2].children.push(grandchild);
-                } else if ((book.num_pages as number) >= maxPages) {
-                  placeholders[placeholders.length - 3].children.push(grandchild);
-                } else if (firstMatchedTag) {
-                  const objIndex = tagList.findIndex(obj => obj === firstMatchedTag.name);
-                  placeholders[objIndex].children.push(grandchild);
-                } else {
-                  placeholders[placeholders.length - 1].children.push(grandchild);
-                }
-              } else if (!placeholders[placeholders.length - 1].children.includes(grandchild)) {
-                placeholders[placeholders.length - 1].children.push(grandchild);
-              }
-            }
-          }
+      const bookmarkMatch = bookmarks.filter(bookmark => bookmark.href.includes(code))!;
+      if (bookmarkMatch.length > 1) {
+        codeBroken.push(code);
+        continue;
+      }
+      const bookmark = bookmarkMatch[0];
+
+      switch (true) {
+        // If the number of pages is less than minimun pages
+        case (book.num_pages as number) <= minPages:
+          placeholders[placeholders.length - 2].children.push(bookmark);
+          break;
+        // If the number of pages is greater than maximun pages
+        case (book.num_pages as number) >= maxPages:
+          placeholders[placeholders.length - 3].children.push(bookmark);
+          break;
+        // Checks if firstMatchedTag is matched
+        case !!firstMatchedTag: {
+          const objIndex = tagList.findIndex(obj => obj === firstMatchedTag.name);
+          placeholders[objIndex].children.push(bookmark);
+          break;
         }
+        // If nothing is matched
+        default:
+          placeholders[placeholders.length - 1].children.push(bookmark);
+          break;
       }
     }
   });
 
-  filteredData.unshift({ website: 'nhentai', children: placeholders });
+  const bookmarkElm = bookmarks.filter(bookmark => {
+    // Default to include the element unless a condition excludes it
+    let include = true;
+    for (const code of codes) {
+      if (bookmark.href.includes(code)) {
+        // Exclude if the code is not in codeBroken, else include it
+        if (!codeBroken.includes(code)) {
+          include = false;
+          break; // If it's not broken, stop further checks for this bookmark
+        }
+      }
+    }
+    return include; // Return true if the bookmark should be included
+  });
+
+  bookmarkElm.forEach(bookmark => {
+    if (bookmark.href.includes('artist')) {
+      placeholders[placeholders.length - 4].children.push(bookmark);
+    } else placeholders[placeholders.length - 1].children.push(bookmark);
+  });
+
+  const sortedResult: Bookmarks[] = [];
+
+  placeholders.forEach(placeholder => {
+    if (placeholder.children.length >= Number(config.website!.folderExcludeSize)) {
+      const chunkSize = Number(config.website.folderSize);
+      if (chunkSize > 0) {
+        const websiteFolder: Bookmarks[] = [];
+        for (let i = 0; i < placeholder.children.length; i += chunkSize) {
+          const chunk = placeholder.children.slice(i, i + chunkSize);
+          websiteFolder.push({
+            website: `${placeholder.website} ${i / chunkSize}`,
+            children: chunk,
+          });
+        }
+        sortedResult.push({ website: placeholder.website, children: websiteFolder });
+      } else {
+        sortedResult.push(placeholder);
+      }
+    } else {
+      sortedResult.push(placeholder);
+    }
+  });
+
+  filteredData.unshift({ website: 'nhentai', children: sortedResult });
   fs.writeFileSync('./data_NH.json', JSON.stringify(jsonData));
   return filteredData;
 }
