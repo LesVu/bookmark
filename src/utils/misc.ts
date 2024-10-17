@@ -55,7 +55,7 @@ export async function puppeteerBrowser(
   const browser = await puppeteer.launch({
     headless: true,
     // args: ['--no-sandbox'],
-    executablePath: '/nix/store/7i6rgqxry3dvvsvs7xazlwd843bfpgbb-chromium-128.0.6613.119/bin/chromium',
+    // executablePath: '/nix/store/7i6rgqxry3dvvsvs7xazlwd843bfpgbb-chromium-128.0.6613.119/bin/chromium',
   });
   // const browser = await puppeteer.connect({
   //   // browserWSEndpoint: 'ws://127.0.0.1:9222/devtools/browser/601763bc-1ae7-40f8-8d7a-e4dcec814ca6',

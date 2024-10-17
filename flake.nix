@@ -20,15 +20,8 @@
           devShells.default = pkgs.mkShell {
             packages = with pkgs; [ deno chromium ];
 
-            # inputsFrom = [ pkgs.bat ];
-            # shellHook = ''
-            #   if [ ! -d "node_modules" ]; then
-            #     echo "node_modules not found. Running npm install..."
-            #     npm install
-            #   fi
-            # '';
-
             PUPPETEER_SKIP_DOWNLOAD = true;
+            PUPPETEER_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
           };
         };
     };
